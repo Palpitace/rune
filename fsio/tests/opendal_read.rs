@@ -106,12 +106,15 @@ async fn webdav_endpoint_parameters_reach_the_storage_adapter() {
             .await
             .unwrap();
         let authority = server.endpoint.strip_prefix("http://").unwrap();
-        let endpoint =
-            format!("opendal+webdav://{authority}?v=1&transport=http&root=%2Fdav%2Flibrary%2F")
-                .parse()
-                .unwrap();
-        let config = OpenDalConfig::from_endpoint(&endpoint, "user".into(), "pass".into()).unwrap();
-        assert_read_contract(config).await;
+        for location in ["/dav", "/dav/"] {
+            let endpoint =
+                format!("opendal+webdav://{authority}{location}?v=1&transport=http&root=library")
+                    .parse()
+                    .unwrap();
+            let config =
+                OpenDalConfig::from_endpoint(&endpoint, "user".into(), "pass".into()).unwrap();
+            assert_read_contract(config).await;
+        }
     })
     .await
     .unwrap();
@@ -157,10 +160,11 @@ async fn s3_endpoint_parameters_reach_the_storage_adapter() {
         let server = S3Fixture::start(vec![("nested/audio.mp3".into(), AUDIO.to_vec())])
             .await
             .unwrap();
+        let service_endpoint = server.endpoint.replacen("http://", "HTTP://", 1);
         let endpoint = |query: &str| -> EndpointUrl {
             format!(
                 "opendal+s3://%62ucket/%6Cibrary?v=1&endpoint={}&{query}",
-                server.endpoint
+                service_endpoint
             )
             .parse()
             .unwrap()
